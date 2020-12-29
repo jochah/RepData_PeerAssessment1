@@ -1,25 +1,108 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Answer to Reproducble Research: Peer Assessment 1"
+author: "JC"
+date: "12/28/2020"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## Part 1
+
+R Code for Reading the dataset and/or processing the data. First 'activity.zip' file is unziped with command unzip. File activity.csv is read using read.csv command. Summary and Str shows that we have NAs in variable step.
+
+```{r}
+unzip("./activity.zip")
+DataActivity <- read.csv("./activity.csv")
+summary(DataActivity)
+str(DataActivity)
+```
+
+## Part 2
+
+Histogram of the total number of steps taken each day. Aggregate creates a dataframe using steps into date subsets.It has ignored the NAs in steps. 
+
+```{r}
+StepsDay <- aggregate(steps ~ date, DataActivity, FUN = sum, na.rm = TRUE)
+hist(StepsDay$steps)
+```
+
+## Part 3
+Mean and median number of steps taken each day using the frequencies. 
+
+```{r}
+meanStepsPerDay <- mean(StepsDay$steps)
+meanStepsPerDay # Mean
+medianStepsPerDay <- median(StepsDay$steps)
+medianStepsPerDay # Median
+```
+## Part 4
+
+Time series plot of the average number of steps taken. 
+
+```{r}
+StepsPerInt<-aggregate(steps~interval, data=DataActivity, mean, na.rm=TRUE)
+plot(steps~interval, data=StepsPerInt, type="l")
+```
+
+## Part 5
+
+The 5-minute interval that, on average, contains the maximum number of steps. Which.max calculates the index in the dataframe that has the maximum number of steps (104).
+
+```{r}
+MaxInt <- StepsPerInt[which.max(StepsPerInt$steps),]$interval
+MaxInt
+```
+## Part 6
+
+Code to describe and show a strategy for imputing missing data using the mean per interval.
+
+```{r}
+MeanPerInt <- function(interval) {
+  StepsPerInt[StepsPerInt$interval==interval,]$steps
+}
+
+NewDataNoNA <- DataActivity
+for(i in 1:nrow(NewDataNoNA)){
+  if(is.na(NewDataNoNA[i,]$steps)){
+    NewDataNoNA[i,]$steps <- MeanPerInt(NewDataNoNA[i,]$interval)
+  }
+}
+```
+## Part 7
+
+Histogram of the total number of steps taken each day after missing values are imputed. 
+
+```{r}
+NewDataNoNAHist <- aggregate(steps ~ date, NewDataNoNA, sum)
+hist(NewDataNoNAHist$steps)
+```
+
+## Part 8
+
+Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends. 
+
+```{r}
+NewDataNoNA$date <- as.Date(strptime(NewDataNoNA$date, format="%Y-%m-%d"))
+NewDataNoNA$day <- weekdays(NewDataNoNA$date)
+for (i in 1:nrow(NewDataNoNA)) {
+    if (NewDataNoNA[i,]$day %in% c("Saturday","Sunday")) {
+        NewDataNoNA[i,]$day<-"weekend"
+    }
+    else{
+        NewDataNoNA[i,]$day<-"weekday"
+    }
+}
+StepsByDay <- aggregate(NewDataNoNA$steps ~ NewDataNoNA$interval + NewDataNoNA$day, NewDataNoNA, mean)
+head(StepsByDay)
+
+names(StepsByDay) <- c("interval", "day", "steps")
+library(lattice)
+xyplot(steps ~ interval | day, StepsByDay, type = "l", layout = c(1, 2), 
+    xlab = "Interval", ylab = "Number of steps")
+
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
